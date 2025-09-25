@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Achados e Perdidos de Pets - Sistema de Doações</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <header>
+        <h1>Achados e Perdidos - Pets</h1>
+        <nav>
+            <ul>
+                <li><a href="/">Voltar à Página Inicial</a></li>
+                <li><a href="/cadastro_doador">Quero Ajudar</a></li>
+                <li><a href="/cadastro_receptor">Preciso de Ajuda</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="intro-section">
+            <h2>Ajude a Reunir Pets com suas Famílias</h2>
+            <p>Durante as enchentes, muitos pets se perdem. Use esta plataforma para reportar animais encontrados ou procurar por seu pet perdido.</p>
+        </section>
+
+        <section class="actions-section">
+            <div class="action-buttons">
+                <button onclick="mostrarFormulario('achado')" class="btn-primary">Encontrei um Pet</button>
+                <button onclick="mostrarFormulario('perdido')" class="btn-secondary">Perdi meu Pet</button>
+            </div>
+        </section>
+
+        <section id="formSection" class="form-section hidden">
+            <h2 id="formTitle">Registrar Pet</h2>
+            <form id="formPet" onsubmit="cadastrarPet(event)">
+                <input type="hidden" id="situacao" name="situacao">
+                
+                <div class="form-group">
+                    <h3>Dados do Pet</h3>
+                    <div class="form-row">
+                        <div class="form-column">
+                            <label for="nome">Nome do Pet (se conhecido)</label>
+                            <input type="text" id="nome" name="nome" 
+                                   placeholder="Ex: Rex, Mia, etc.">
+                        </div>
+                        <div class="form-column">
+                            <label for="especie">Espécie *</label>
+                            <select id="especie" name="especie" required>
+                                <option value="">Selecione</option>
+                                <option value="cachorro">Cachorro</option>
+                                <option value="gato">Gato</option>
+                                <option value="ave">Ave</option>
+                                <option value="outros">Outros</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-column">
+                            <label for="raca">Raça (opcional)</label>
+                            <input type="text" id="raca" name="raca" 
+                                   placeholder="Ex: Vira-lata, Poodle, Siames">
+                        </div>
+                        <div class="form-column" id="campoOutros" style="display: none;">
+                            <label for="outra_especie">Qual espécie?</label>
+                            <input type="text" id="outra_especie" name="outra_especie">
+                        </div>
+                    </div>
+
+                    <div class="form-column">
+                        <label for="descricao">Descrição Detalhada *</label>
+                        <textarea id="descricao" name="descricao" required 
+                                  placeholder="Descreva o pet: cor, tamanho, características especiais, cor da coleira, etc." 
+                                  rows="4"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <h3>Local e Situação</h3>
+                    <div class="form-column">
+                        <label for="local_encontro" id="labelLocal">Local *</label>
+                        <input type="text" id="local_encontro" name="local_encontro" required 
+                               placeholder="Ex: Rua das Flores, 123 - Centro">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-column">
+                            <label for="data_ocorrido">Data do Ocorrido *</label>
+                            <input type="date" id="data_ocorrido" name="data_ocorrido" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <h3>Contato</h3>
+                    <div class="form-column">
+                        <label for="contato">Informações de Contato *</label>
+                        <input type="text" id="contato" name="contato" required 
+                               placeholder="Nome e telefone/WhatsApp">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <h3>Foto (opcional)</h3>
+                    <div class="form-column">
+                        <label for="foto_url">URL da Foto</label>
+                        <input type="url" id="foto_url" name="foto" 
+                               placeholder="https://exemplo.com/foto-pet.jpg">
+                        <small>Caso tenha uma foto do pet, cole o link aqui</small>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Registrar Pet</button>
+                    <button type="button" class="btn-secondary" onclick="cancelarFormulario()">Cancelar</button>
+                </div>
+            </form>
+        </section>
+
+        <section id="confirmacao" class="hidden">
+            <div class="success-message">
+                <h2>Registro realizado com sucesso!</h2>
+                <p id="mensagemSucesso"></p>
+                <a href="/achados_perdidos" class="btn-primary">Voltar aos Registros</a>
+            </div>
+        </section>
+
+        <section class="lista-pets">
+            <h2>Pets Registrados</h2>
+            <div class="filtros">
+                <button onclick="filtrarPets('todos')" class="btn-filter active">Todos</button>
+                <button onclick="filtrarPets('achado')" class="btn-filter">Achados</button>
+                <button onclick="filtrarPets('perdido')" class="btn-filter">Perdidos</button>
+            </div>
+            
+            <div id="listaPets" class="pets-grid">
+                <!-- Os pets serão carregados aqui via JavaScript -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Sistema de Doações para Enchentes. Todos os direitos reservados.</p>
+        <p><strong>Dica:</strong> Verifique também abrigos oficiais e páginas locais de animais perdidos.</p>
+    </footer>
+
+    <script>
+        let pets = [];
+
+        async function carregarPets() {
+            try {
+                const response = await fetch('/api/pets');
+                pets = await response.json();
+                exibirPets('todos');
+            } catch (error) {
+                console.error('Erro ao carregar pets:', error);
+            }
+        }
+
+        function exibirPets(filtro) {
+            const container = document.getElementById('listaPets');
+            const petsFiltrados = filtro === 'todos' ? pets : pets.filter(pet => pet.situacao === filtro);
+
+            // Atualizar botões de filtro
+            document.querySelectorAll('.btn-filter').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            if (petsFiltrados.length === 0) {
+                container.innerHTML = '<p class="no-pets">Nenhum pet encontrado.</p>';
+                return;
+            }
+
+            container.innerHTML = petsFiltrados.map(pet => `
+                <div class="pet-card ${pet.situacao}">
+                    <div class="pet-header">
+                        <h3>${pet.nome || 'Sem nome'} - ${pet.especie}</h3>
+                        <span class="situacao ${pet.situacao}">${pet.situacao === 'achado' ? '🟢 Achado' : '🔴 Perdido'}</span>
+                    </div>
+                    
+                    ${pet.foto ? `<img src="${pet.foto}" alt="Foto do pet" class="pet-photo">` : ''}
+                    
+                    <div class="pet-info">
+                        <p><strong>Raça:</strong> ${pet.raca || 'Não informada'}</p>
+                        <p><strong>Descrição:</strong> ${pet.descricao}</p>
+                        <p><strong>Local:</strong> ${pet.local_encontro}</p>
+                        <p><strong>Contato:</strong> ${pet.contato}</p>
+                        <p><strong>Registrado em:</strong> ${pet.data_cadastro}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filtrarPets(filtro) {
+            exibirPets(filtro);
+        }
+
+        function mostrarFormulario(situacao) {
+            document.getElementById('situacao').value = situacao;
+            document.getElementById('formTitle').textContent = 
+                situacao === 'achado' ? 'Registrar Pet Encontrado' : 'Registrar Pet Perdido';
+            document.getElementById('labelLocal').textContent = 
+                situacao === 'achado' ? 'Onde foi encontrado? *' : 'Onde foi perdido? *';
+            
+            document.getElementById('formSection').classList.remove('hidden');
+            document.querySelector('.lista-pets').classList.add('hidden');
+        }
+
+        function cancelarFormulario() {
+            document.getElementById('formSection').classList.add('hidden');
+            document.querySelector('.lista-pets').classList.remove('hidden');
+            document.getElementById('formPet').reset();
+        }
+
+        // Manipular campo "outros" para espécie
+        document.getElementById('especie').addEventListener('change', function() {
+            const campoOutros = document.getElementById('campoOutros');
+            campoOutros.style.display = this.value === 'outros' ? 'block' : 'none';
+        });
+
+        async function cadastrarPet(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            let data = Object.fromEntries(formData.entries());
+            
+            // Se selecionou "outros", usar o valor do campo específico
+            if (data.especie === 'outros') {
+                data.especie = data.outra_especie;
+            }
+
+            try {
+                const response = await fetch('/api/pets', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    document.getElementById('formSection').classList.add('hidden');
+                    document.getElementById('confirmacao').classList.remove('hidden');
+                    
+                    const mensagem = data.situacao === 'achado' 
+                        ? 'Obrigado por ajudar! Esperamos que o pet encontre sua família.' 
+                        : 'Não desista! Vamos ajudar a encontrar seu pet.';
+                    
+                    document.getElementById('mensagemSucesso').textContent = mensagem;
+                    
+                    // Recarregar a lista
+                    carregarPets();
+                } else {
+                    const error = await response.json();
+                    alert('Erro ao registrar: ' + error.error);
+                }
+            } catch (error) {
+                alert('Erro de conexão. Tente novamente.');
+            }
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarPets();
+            document.getElementById('data_ocorrido').valueAsDate = new Date();
+        });
+    </script>
+
+    <style>
+        .pets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .pet-card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            background: white;
+        }
+
+        .pet-card.achado {
+            border-left: 4px solid #28a745;
+        }
+
+        .pet-card.perdido {
+            border-left: 4px solid #dc3545;
+        }
+
+        .pet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .situacao {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .situacao.achado {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .situacao.perdido {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .pet-photo {
+            width: 100%;
+            max-height: 200px;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .pet-info p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .filtros {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .btn-filter {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .btn-filter.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .no-pets {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</body>
+</html>
