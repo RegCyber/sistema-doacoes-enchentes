@@ -3,17 +3,28 @@ from flask_cors import CORS
 from models import db, Doador, Receptor, Pet, init_db
 from datetime import datetime
 import os
+import re
 
 app = Flask(__name__)
 CORS(app)
 
-# Configuração do banco de dados
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///doacoes.db')
+# Configuração do banco de dados para produção
+def get_database_url():
+    database_url = os.environ.get('DATABASE_URL', 'sqlite:///doacoes.db')
+    
+    # Se for PostgreSQL no Heroku/Render, ajusta a URL
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    
+    return database_url
+
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db.init_app(app)
+# Configurações de segurança para produção
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-aqui-trocar-em-producao')
 
-# Criar tabelas
+db.init_app(app)
 init_db(app)
 
 # Rotas para Doadores
@@ -145,5 +156,21 @@ def cadastro_receptor():
 def achados_perdidos():
     return render_template('achados_perdidos.html')
 
+# Health check para monitoramento
+@app.route('/health')
+def health_check():
+    return jsonify({'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()})
+
+# Manipulador de erro 404
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'error': 'Endpoint não encontrado'}), 404
+
+# Manipulador de erro 500
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'error': 'Erro interno do servidor'}), 500
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

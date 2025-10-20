@@ -14,7 +14,7 @@ Sistema para conectar doadores e pessoas afetadas por enchentes, incluindo regis
 - **Backend**: Python + Flask
 - **Frontend**: HTML5 + CSS3 + JavaScript
 - **Banco de dados**: SQLite (desenvolvimento) / PostgreSQL (produção)
-- **Hospedagem**: Render.com (gratuita)
+- **Hospedagem**: Render.com (gratuita) - ESTE TALVEZ MUDE
 
 ## 📦 Instalação
 

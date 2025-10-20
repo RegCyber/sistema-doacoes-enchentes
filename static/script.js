@@ -82,23 +82,7 @@ function atualizarLista(tipo, itens) {
   });
 }
 
-// Função para aplicar máscaras (NOVA)
-function aplicarMascarasDinamicas() {
-  const forms = document.querySelectorAll("#form-content form");
-  forms.forEach((form) => {
-    const cepInput = form.querySelector('input[name="cep"]');
-    const cpfInput = form.querySelector('input[name="cpf"]');
-    const telInput = form.querySelector('input[name="telefone"]');
-    const whatsappInput = form.querySelector('input[name="whatsapp"]');
-
-    if (cepInput) aplicarMascaraCEP(cepInput);
-    if (cpfInput) aplicarMascaraCPF(cpfInput);
-    if (telInput) aplicarMascaraTelefone(telInput);
-    if (whatsappInput) aplicarMascaraTelefone(whatsappInput);
-  });
-}
-
-// Função de busca CEP corrigida (NOVA)
+// Função de busca CEP
 async function buscarCEP(cepInput) {
   const cep = cepInput.value.replace(/\D/g, "");
   if (cep.length !== 8) return;
@@ -108,12 +92,16 @@ async function buscarCEP(cepInput) {
     const data = await response.json();
 
     if (!data.erro) {
-      // Encontrar os campos do formulário e preencher
       const form = cepInput.closest("form");
-      form.querySelector('input[name="estado"]').value = data.uf;
-      form.querySelector('input[name="cidade"]').value = data.localidade;
-      form.querySelector('input[name="bairro"]').value = data.bairro;
-      form.querySelector('input[name="endereco"]').value = data.logradouro;
+      const estadoInput = form.querySelector('input[name="estado"]');
+      const cidadeInput = form.querySelector('input[name="cidade"]');
+      const bairroInput = form.querySelector('input[name="bairro"]');
+      const enderecoInput = form.querySelector('input[name="endereco"]');
+
+      if (estadoInput) estadoInput.value = data.uf || "";
+      if (cidadeInput) cidadeInput.value = data.localidade || "";
+      if (bairroInput) bairroInput.value = data.bairro || "";
+      if (enderecoInput) enderecoInput.value = data.logradouro || "";
     }
   } catch (error) {
     console.error("Erro ao buscar CEP:", error);
@@ -134,7 +122,7 @@ function mostrarFormulario(tipo) {
         <div><label>CEP:</label><input type="text" name="cep" required placeholder="00000-000" onblur="buscarCEP(this)"></div>
         <div><label>Bairro:</label><input type="text" name="bairro" required></div>
         <div><label>Cidade:</label><input type="text" name="cidade" required></div>
-        <div><label>Estado:</label><input type="text" name="estado" required maxlength="2"></div>
+        <div><label>Estado:</label><input type="text" name="estado" required maxlength="2" placeholder="SP"></div>
         <div><label>Telefone:</label><input type="text" name="telefone" required placeholder="(11) 99999-9999"></div>
         <div><label>WhatsApp:</label><input type="text" name="whatsapp" required placeholder="(11) 99999-9999"></div>
         <div>
@@ -161,7 +149,7 @@ function mostrarFormulario(tipo) {
         <div><label>CEP:</label><input type="text" name="cep" required placeholder="00000-000" onblur="buscarCEP(this)"></div>
         <div><label>Bairro:</label><input type="text" name="bairro" required></div>
         <div><label>Cidade:</label><input type="text" name="cidade" required></div>
-        <div><label>Estado:</label><input type="text" name="estado" required maxlength="2"></div>
+        <div><label>Estado:</label><input type="text" name="estado" required maxlength="2" placeholder="SP"></div>
         <div><label>Telefone:</label><input type="text" name="telefone" required placeholder="(11) 99999-9999"></div>
         <div><label>WhatsApp:</label><input type="text" name="whatsapp" required placeholder="(11) 99999-9999"></div>
         <div><label>Quantidade de pessoas na casa:</label><input type="number" name="qtde_pessoas" required min="1"></div>
@@ -207,9 +195,8 @@ function mostrarFormulario(tipo) {
   aplicarMascarasDinamicas();
 }
 
-// Função para aplicar máscaras dinamicamente (NOVA)
+// Função para aplicar máscaras dinamicamente
 function aplicarMascarasDinamicas() {
-  // Aplicar máscaras para os campos recém-criados
   const forms = document.querySelectorAll("#form-content form");
   forms.forEach((form) => {
     const cepInput = form.querySelector('input[name="cep"]');
@@ -224,7 +211,7 @@ function aplicarMascarasDinamicas() {
   });
 }
 
-// Funções de máscara específicas (NOVAS)
+// Funções de máscara específicas
 function aplicarMascaraCEP(input) {
   input.addEventListener("input", function (e) {
     let value = e.target.value.replace(/\D/g, "");
@@ -258,15 +245,81 @@ function aplicarMascaraTelefone(input) {
   });
 }
 
-// Suas funções de cadastro (PERMANECEM IGUAIS)
+// FUNÇÕES DE CADASTRO CORRIGIDAS (COM ATUALIZAÇÃO DOS CONTADORES)
 async function cadastrarDoador(event) {
-  // ... (seu código atual)
+  event.preventDefault();
+  const formData = new FormData(event.target);
+  const data = Object.fromEntries(formData.entries());
+  data.pode_entregar = data.pode_entregar === "true";
+
+  try {
+    const response = await fetch(`${API_BASE}/doadores`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (response.ok) {
+      alert("Doador cadastrado com sucesso!");
+      modal.style.display = "none";
+      await carregarDados(); // ATUALIZA OS CONTADORES
+    } else {
+      const error = await response.json();
+      alert("Erro: " + error.error);
+    }
+  } catch (error) {
+    alert("Erro ao cadastrar doador: " + error.message);
+  }
 }
 
 async function cadastrarReceptor(event) {
-  // ... (seu código atual)
+  event.preventDefault();
+  const formData = new FormData(event.target);
+  const data = Object.fromEntries(formData.entries());
+  data.pode_retirar = data.pode_retirar === "true";
+  data.qtde_pessoas = parseInt(data.qtde_pessoas);
+
+  try {
+    const response = await fetch(`${API_BASE}/receptores`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (response.ok) {
+      alert("Receptor cadastrado com sucesso!");
+      modal.style.display = "none";
+      await carregarDados(); // ATUALIZA OS CONTADORES
+    } else {
+      const error = await response.json();
+      alert("Erro: " + error.error);
+    }
+  } catch (error) {
+    alert("Erro ao cadastrar receptor: " + error.message);
+  }
 }
 
 async function cadastrarPet(event) {
-  // ... (seu código atual)
+  event.preventDefault();
+  const formData = new FormData(event.target);
+  const data = Object.fromEntries(formData.entries());
+
+  try {
+    const response = await fetch(`${API_BASE}/pets`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (response.ok) {
+      alert("Pet cadastrado com sucesso!");
+      modal.style.display = "none";
+      await carregarDados(); // ATUALIZA OS CONTADORES
+    } else {
+      const error = await response.json();
+      alert("Erro: " + error.error);
+    }
+  } catch (error) {
+    alert("Erro ao cadastrar pet: " + error.message);
+  }
 }
