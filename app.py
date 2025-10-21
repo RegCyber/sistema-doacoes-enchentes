@@ -1,22 +1,13 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from models import db, Doador, Receptor, Pet, init_db
+from models import db, Doador, Receptor, Pet, init_db, get_database_url
 from datetime import datetime
 import os
-import re
+# import re
 
 app = Flask(__name__)
 CORS(app)
 
-# Configuração do banco de dados para produção
-def get_database_url():
-    database_url = os.environ.get('DATABASE_URL', 'sqlite:///doacoes.db')
-    
-    # Se for PostgreSQL no Heroku/Render, ajusta a URL
-    if database_url.startswith('postgres://'):
-        database_url = database_url.replace('postgres://', 'postgresql://', 1)
-    
-    return database_url
 
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
